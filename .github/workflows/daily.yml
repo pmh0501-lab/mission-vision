@@ -1,0 +1,16 @@
+name: Daily Rotation
+on:
+  schedule:
+    - cron: '55 0 * * 1-5' # 평일 09:55(KST)
+  workflow_dispatch:
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.x'}
+      - run: pip install slack_sdk
+      - run: python send_daily.py
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
