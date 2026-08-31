@@ -10,6 +10,7 @@ KST = ZoneInfo("Asia/Seoul")
 CHANNEL = "GG7PU8KFU"   # #ex 채널 ID (예약 목록 조회는 채널명이 아닌 ID가 필요)
 SEND_AT = time(11, 0)      # 한국시간 오전 11시 정각 발송
 GRACE_HOURS = 2            # 11시가 이미 지났어도 이 시간 안이면 즉시 발송
+EARLY_CRON = "0 18 * * 0-4"  # 새벽 3시(KST) 실행분. 지각 발송은 이 실행분에 허용하지 않는다
 
 team_members = ["Lucy", "Bailey", "Claire", "Sayuri", "Evan", "Riley", "Silvia", "Jayla"]
 
@@ -63,7 +64,14 @@ if now < target:
     print(f"[scheduled] {target:%Y-%m-%d %H:%M} KST / {current_member}")
     sys.exit(0)
 
-# 5) 11시가 지났더라도 2시간 이내면 지금이라도 보낸다
+# 5) 11시가 지났을 때의 지각 발송
+#    두 실행분이 모두 11시를 넘겨 깨어나면 같은 메시지가 두 번 나갈 수 있다.
+#    (예약 목록 확인은 '아직 안 나간 예약'만 걸러내므로 이미 발송된 건 못 막는다)
+#    그래서 지각 발송은 뒤쪽 실행분(아침 8시)과 수동 실행에서만 허용한다.
+if os.environ.get("SCHEDULE_CRON", "") == EARLY_CRON:
+    print(f"[skip] 11시가 지났습니다. 새벽 실행분은 지각 발송을 하지 않습니다. ({current_member} 차례)")
+    sys.exit(0)
+
 if now < target + timedelta(hours=GRACE_HOURS):
     client.chat_postMessage(channel=CHANNEL, text=message)
     print(f"[sent-late] {now:%H:%M} KST에 즉시 발송 / {current_member}")
