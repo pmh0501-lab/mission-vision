@@ -1,4 +1,4 @@
-import os
+ import os
   import sys
   from datetime import date, datetime, time, timedelta
   from zoneinfo import ZoneInfo
@@ -49,3 +49,36 @@ import os
   client = WebClient(token=os.environ["SLACK_TOKEN"])
   target = datetime.combine(today, SEND_AT, tzinfo=KST)
   post_at = int(target.timestamp())
+
+  # 3) 이미 오늘 11시로 예약해둔 게 있으면 중복 발송하지 않는다
+  #    (새벽 3시 실행분과 아침 8시 예비 실행분이 겹치는 것을 막는 장치)
+  try:
+      scheduled = client.chat_scheduledMessages_list(
+          channel=CHANNEL, oldest=post_at - 60, latest=post_at + 60
+      )
+      if scheduled.get("scheduled_messages"):
+          print(f"[skip] 이미 {target:%Y-%m-%d %H:%M} 발송으로 예약되어
+  있습니다.")
+          sys.exit(0)
+  except SlackApiError as e:
+      # 예약 목록 조회에 실패해도 발송 자체는 계속 진행한다
+      print(f"[warn] 예약 목록 확인 실패({e.response['error']}). 그대로
+  진행합니다.")
+
+  # 4) 아직 11시 전이면 슬랙에 예약을 걸어둔다 (GitHub이 늦게 돌아도 11시 정각
+  발송)
+  if now < target:
+      client.chat_scheduleMessage(channel=CHANNEL, post_at=post_at,
+  text=message)
+      print(f"[scheduled] {target:%Y-%m-%d %H:%M} KST / {current_member}")
+      sys.exit(0)
+
+  # 5) 11시가 지났더라도 2시간 이내면 지금이라도 보낸다
+  if now < target + timedelta(hours=GRACE_HOURS):
+      client.chat_postMessage(channel=CHANNEL, text=message)
+      print(f"[sent-late] {now:%H:%M} KST에 즉시 발송 / {current_member}")
+      sys.exit(0)
+
+  # 6) 너무 늦었으면 보내지 않는다 (밤에 메시지가 나가는 것을 방지)
+  print(f"[skip] 지금은 {now:%H:%M} KST. 너무 늦어 발송하지 않습니다.
+  ({current_member} 차례)")
