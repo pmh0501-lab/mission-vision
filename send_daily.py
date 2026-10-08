@@ -12,7 +12,7 @@ SEND_AT = time(11, 0)      # 한국시간 오전 11시 정각 발송
 GRACE_HOURS = 2            # 11시가 이미 지났어도 이 시간 안이면 즉시 발송
 EARLY_CRON = "0 18 * * 0-4"  # 새벽 3시(KST) 실행분. 지각 발송은 이 실행분에 허용하지 않는다
 
-team_members = ["Lucy", "Bailey", "Claire", "Sayuri", "Evan", "Riley", "Silvia", "Jayla"]
+team_members = ["Lucy", "Bailey", "Claire", "Estelle", "Evan", "Riley", "Silvia", "Jayla"]
 
 now = datetime.now(KST)
 today = now.date()
